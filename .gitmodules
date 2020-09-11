@@ -1,0 +1,4 @@
+[submodule "ktlib"]
+	path = ktlib
+	url = https://github.com/nekohasekai/ktlib
+	branch = dev
