@@ -2,8 +2,7 @@ package io.nekohasekai.fwd
 
 import io.nekohasekai.ktlib.core.defaultLog
 import io.nekohasekai.ktlib.td.cli.TdCli
-import io.nekohasekai.ktlib.td.core.extensions.displayNameFormatted
-import io.nekohasekai.ktlib.td.core.extensions.text
+import io.nekohasekai.ktlib.td.core.extensions.*
 import io.nekohasekai.ktlib.td.core.raw.*
 import td.TdApi
 import java.io.File
@@ -29,7 +28,11 @@ object Launcher : TdCli() {
 
     override suspend fun onNewMessage(userId: Int, chatId: Long, message: TdApi.Message) {
 
-        if (userId == 1162660847) {
+        super.onNewMessage(userId, chatId, message)
+
+        if (userId == 0) return
+
+        if ((getUserOrNull(userId) ?: return).displayName.contains("Zhibo")) {
 
             defaultLog.info("[${getChat(chatId).title} $chatId] ${getUserOrNull(userId)?.displayNameFormatted ?: "$userId"}: ${message.text ?: ("[" + message.content.javaClass.simpleName.substringAfter("Message") + "]")}")
 
@@ -43,16 +46,11 @@ object Launcher : TdCli() {
 
             }
 
-            if (text.replace(" ", "")
-                            .replace("\n", "") == last) return
+            if (text.replace(" ", "").replace("\n", "") == last) return
 
-            if (text.split("\n").any { last.split("\n").contains(it) }) return
+            last = text.replace(" ", "")
 
-            last = text
-
-            if (text.replace(" ", "").replace("\n", "").contains("(香港|台湾)".toRegex())) return
-
-            if (text.count { it == '\n' } > 2) return
+            if (text.count { it == '\n' } > 3) return
 
             forwardMessages(-1001455198496, chatId, longArrayOf(message.id), TdApi.MessageSendOptions(), asAlbum = false, sendCopy = false, removeCaption = false)
 
