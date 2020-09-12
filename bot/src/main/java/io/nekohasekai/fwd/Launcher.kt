@@ -2,15 +2,11 @@ package io.nekohasekai.fwd
 
 import io.nekohasekai.ktlib.core.defaultLog
 import io.nekohasekai.ktlib.td.cli.TdCli
-import io.nekohasekai.ktlib.td.core.TdException
 import io.nekohasekai.ktlib.td.core.extensions.displayNameFormatted
 import io.nekohasekai.ktlib.td.core.extensions.text
 import io.nekohasekai.ktlib.td.core.raw.*
-import io.nekohasekai.ktlib.td.core.utils.getChats
-import kotlinx.coroutines.*
 import td.TdApi
 import java.io.File
-import kotlin.system.exitProcess
 
 object Launcher : TdCli() {
 
@@ -29,63 +25,36 @@ object Launcher : TdCli() {
 
     }
 
-    var fromUser = 0
-    var toChat = 0L
-
-    override fun onLoadConfig() {
-
-        super.onLoadConfig()
-
-        fromUser = intConfig("FROM_USER") ?: fromUser
-        toChat = longConfig("TO_CHAT") ?: toChat
-
-        if (fromUser == 0 || toChat == 0L) {
-
-            defaultLog.error("configured.")
-
-            exitProcess(1)
-
-        }
-
-    }
-
-    override suspend fun onLogin() {
-
-        GlobalScope.launch(Dispatchers.IO) {
-
-            waitForLogin()
-
-            try {
-
-                defaultLog.info("Forward To: " + getChat(toChat).title + " ($toChat)")
-
-            } catch (e: TdException) {
-
-                getChats()
-
-                try {
-
-                    defaultLog.info("Forward To: " + getChat(toChat).title + " ($toChat)")
-
-                } catch (e: TdException) {
-
-                    defaultLog.error(e, "Unable to get target chat: ")
-
-                }
-
-            }
-
-        }
-
-    }
+    var last = ""
 
     override suspend fun onNewMessage(userId: Int, chatId: Long, message: TdApi.Message) {
 
-        if (userId == fromUser) {
-
-            forwardMessages(toChat, chatId, longArrayOf(message.id), TdApi.MessageSendOptions(), asAlbum = false, sendCopy = false, removeCaption = false)
+        if (userId == 1162660847) {
 
             defaultLog.info("[${getChat(chatId).title} $chatId] ${getUserOrNull(userId)?.displayNameFormatted ?: "$userId"}: ${message.text ?: ("[" + message.content.javaClass.simpleName.substringAfter("Message") + "]")}")
+
+            val text = message.text
+
+            if (text == null || message.forwardInfo != null) {
+
+                forwardMessages(me.id.toLong(), chatId, longArrayOf(message.id), TdApi.MessageSendOptions(), asAlbum = false, sendCopy = false, removeCaption = false)
+
+                return
+
+            }
+
+            if (text.replace(" ", "")
+                            .replace("\n", "") == last) return
+
+            if (text.split("\n").any { last.split("\n").contains(it) }) return
+
+            last = text
+
+            if (text.replace(" ", "").replace("\n", "").contains("(香港|台湾)".toRegex())) return
+
+            if (text.count { it == '\n' } > 2) return
+
+            forwardMessages(-1001455198496, chatId, longArrayOf(message.id), TdApi.MessageSendOptions(), asAlbum = false, sendCopy = false, removeCaption = false)
 
         } else {
 
